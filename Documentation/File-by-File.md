@@ -1,0 +1,1 @@
+# This file contains notes/brief explanations of every file in the BeeKeepr Database, for my own reference.
