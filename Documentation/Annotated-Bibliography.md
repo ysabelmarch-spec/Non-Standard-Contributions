@@ -41,29 +41,116 @@ Learning Resources:
 
 >> EXPO
 
+Expo is a layer on top of React Native that does all the annoying setup for you. Without Expo, to use the camera you'd have to write platform-specific code for iOS and Android separately. With Expo, you just import { Camera } from 'expo-camera' and it works.
+The project uses Expo SDK 54. You start the app with npm start, which boots up the Expo dev server.
+Some Expo packages we use:
+
+expo-location — for GPS (finding local apiaries)
+expo-splash-screen — that loading screen when the app opens
+expo-linking — deep links (like beekeepr://hive/123)
+
+Learning Resources:
+
+- Expo docs (start here for setup): https://docs.expo.dev
+- Expo SDK reference: https://docs.expo.dev/versions/latest/
+- dev.to "Expo vs Bare Workflow: Which Should You Choose?" (beginner-friendly comparison): https://dev.to/lucas_wade_0596/react-native-expo-vs-bare-workflow-which-should-you-choose-47lo
+
 >> REACT NAVIGATION
+
+This is how you move between screens. It's not built into React Native, it's a separate library. There are two kinds we use:
+
+Stack Navigator — like a stack of papers. You "push" a new screen on top when you drill into something (e.g., tapping a hive to see its details), and "pop" it off to go back.
+Bottom Tabs — the five-tab bar at the bottom of the app.
+
+The whole navigation tree is wired up in src/navigation/AppNavigator.tsx. Each tab has its own stack in src/navigation/stacks/.
+
+Learning Resources:
+
+- React Navigation docs: https://reactnavigation.org/docs/getting-started
+- Stack Navigator: https://reactnavigation.org/docs/native-stack-navigator
+- Bottom Tabs: https://reactnavigation.org/docs/bottom-tab-navigator
 
 >> STATE MANAGEMENT
 
+"State" = data that changes while the app is running (like the logged-in user, or dark mode on/off). The tricky part is sharing that data across a bunch of components without passing it down as props through every single layer (this is called "prop drilling" and apparently).
+Bigger projects often use Redux for this, but Beekeepr uses React's built-in Context API instead, which is simpler. There are two contexts:
+
+AuthContext — holds the logged-in user
+ThemeContext — holds the current theme (light/dark mode)
+
+Both wrap the whole app in src/App.tsx, so any component anywhere can just call useContext(AuthContext) and get the current user. Very cool.
+
+Learning Resources:
+
+- React Context docs: https://react.dev/learn/passing-data-deeply-with-context
+- useContext hook: https://react.dev/reference/react/useContext
+- Medium "React Context API vs Redux: A Beginner's Perspective": https://medium.com/@bernardtambo40/react-context-api-vs-redux-a-beginners-perspective-3244cd83fa2a
+
 >> THEMEING/STYLEEESSS
+
+All colors live in one file: src/styles/colors.ts. It defines a light theme and a dark theme, both using semantic names like primary, danger, success — not hex codes like #FF5733 scattered all over the app. That way if we ever want to change the primary color, we change it once.
+Styles themselves use React Native's StyleSheet.create() — kind of like CSS but as JavaScript objects. Layout uses Flexbox, same as web.
+
+Learning Resources:
+
+- StyleSheet: https://reactnative.dev/docs/stylesheet
+- Flexbox in React Native: https://reactnative.dev/docs/flexbox
+- CSS-Tricks "A Complete Guide to Flexbox" (the definitive reference): https://css-tricks.com/snippets/css/a-guide-to-flexbox/
 
 # Section 2: Back End
 
-{Overview}
+The back end is the server that the app talks to over the internet. When I tap "log in" in the app, it sends my email/password to the back end, which checks the database and sends back a token. The back end is a REST API built with Node.js + Express, running on port 3000.
+Entry point: backend/server.js (connects to DB, starts server). App logic: backend/app.js (middleware + routes).
+
+Important: there's a file at backend/docs.md written by the original backend author that does a much deeper architectural walkthrough. 
 
 >> Node.js
 
+Learning Resources:
+
+- Node.js docs: https://nodejs.org/en/docs
+- Node.js beginner guide: https://nodejs.dev/en/learn/
+- freeCodeCamp "What Exactly is Node.js? Explained for Beginners": https://www.freecodecamp.org/news/what-is-node-js/
+
 >> Express
+
+Learning Resources:
+
+- Express docs: https://expressjs.com/en/5x/api.html
+- Express routing: https://expressjs.com/en/guide/routing.html
+- Express middleware: https://expressjs.com/en/guide/using-middleware.html
 
 >> 6-Layer Architecture
 
+Learning Resources:
+
+- backend/docs.md in this repo — genuinely the best resource
+- MVC / layered architecture: https://developer.mozilla.org/en-US/docs/Glossary/MVC
+- dev.to "Layered Architecture: A Beginner's Guide to Structuring Software Systems" (uses a burger metaphor, I'm into it): https://dev.to/aznaxdev/layered-architecture-a-beginners-guide-to-structuring-software-systems-4omm
+
 >> Authentication 
+
+Learning Resources:
+
+- JWT intro + playground: https://jwt.io/introduction
+- Argon2 on Wikipedia: https://en.wikipedia.org/wiki/Argon2
+- OWASP password storage cheatsheet: https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html
+- dev.to "JWT explained in 4 minutes (With Visuals)": https://dev.to/jaypmedia/jwt-explained-in-4-minutes-with-visuals-g3n
 
 >> JOI (Validation)
 
+Learning Resources:
+
+- Joi docs: https://joi.dev/api
+- Schema builder tutorial: https://joi.dev/tutorials/schema-builder
+
 >> Error Handling
 
+The project has custom error classes in backend/classes/ (like NotFoundError, UnauthorizedError) and a global error middleware in backend/middlewares/error.middleware.js. This means any layer can just throw new NotFoundError(...) and the middleware automatically turns it into the right HTTP status code and JSON response. No try/catch boilerplate in every controller. 
+
 # Section 3: Database
+
+{overview}
 
 >> MongoDB (NOT SQL)
 
@@ -74,3 +161,5 @@ Learning Resources:
 >> MondgoDB (Memory Server/Testing)
 
 # Section 4: MISC STUFF IDK
+
+{overview?}
