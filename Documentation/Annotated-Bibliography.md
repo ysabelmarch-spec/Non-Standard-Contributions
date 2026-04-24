@@ -106,6 +106,8 @@ Important: there's a file at backend/docs.md written by the original backend aut
 
 >> Node.js
 
+Node.js lets JavaScript run outside the browser — on a server. That's basically it. Before Node, JS was a browser-only language. Now it runs pretty much everywhere. The project uses Node 20 (LTS = Long Term Support, the stable version).
+
 Learning Resources:
 
 - Node.js docs: https://nodejs.org/en/docs
@@ -113,6 +115,22 @@ Learning Resources:
 - freeCodeCamp "What Exactly is Node.js? Explained for Beginners": https://www.freecodecamp.org/news/what-is-node-js/
 
 >> Express
+
+Express is a framework that makes building a web server in Node way less painful. It handles:
+
+* Parsing incoming JSON (so we can actually read what the app sent)
+* Parsing cookies
+* Matching URLs to handler functions (routing)
+* Running middleware in order (logging → validating → auth → controller)
+* Catching errors globally
+
+Middleware order matters a lot. The error-handling middleware has to be registered last in backend/app.js — otherwise it won't catch errors from the stuff that runs after it.
+Current endpoints:
+
+* POST /api/auth/login
+* POST /api/auth/refresh
+* POST /api/auth/logout
+* GET/POST/PATCH/DELETE /api/accounts
 
 Learning Resources:
 
@@ -122,6 +140,17 @@ Learning Resources:
 
 >> 6-Layer Architecture
 
+This is the part I had to read backend/docs.md for. The back end is split into six layers, each with ONE job. When we're writing new code, we have to figure out which layer it belongs in:
+
+* API Layer (app.js) — wires up routes and global middleware
+* Routing Layer (backend/routers/) — defines endpoint paths
+* Validation Layer (backend/validators/) — checks request input (Joi)
+* Controller Layer (backend/controllers/) — handles the HTTP stuff (read request, send response)
+* Service Layer (backend/services/) — the actual business logic (doesn't know HTTP exists)
+* Data Layer (backend/models/) — talks to the database (Mongoose)
+
+The big idea: if I want to change how passwords get hashed, I only touch the service layer. The controller, router, and validator don't care and don't change. This is called "separation of concerns".
+
 Learning Resources:
 
 - backend/docs.md in this repo — genuinely the best resource
@@ -129,6 +158,14 @@ Learning Resources:
 - dev.to "Layered Architecture: A Beginner's Guide to Structuring Software Systems" (uses a burger metaphor, I'm into it): https://dev.to/aznaxdev/layered-architecture-a-beginners-guide-to-structuring-software-systems-4omm
 
 >> Authentication 
+
+When I log in, the server gives me two tokens:
+
+Access token — short life, sent with every request
+Refresh token — longer life, only used to get a new access token when the old one expires
+
+Both tokens have a version number (accessId, refreshId) stored in my user record. If we ever need to kick me out of all my sessions, we just bump the version number and any token with the old version is now invalid. Clean.
+Passwords are hashed with Argon2 before being stored.  
 
 Learning Resources:
 
@@ -138,6 +175,9 @@ Learning Resources:
 - dev.to "JWT explained in 4 minutes (With Visuals)": https://dev.to/jaypmedia/jwt-explained-in-4-minutes-with-visuals-g3n
 
 >> JOI (Validation)
+
+Joi is a library that checks if incoming data is the right shape before it hits the controller. Every endpoint has a Joi schema in backend/validators/. If someone sends a request with a missing field or a malformed email, Joi rejects it at the door and the database never even gets pinged.
+This "fail early" pattern means less junk in the database and way fewer mystery bugs.
 
 Learning Resources:
 
@@ -150,16 +190,104 @@ The project has custom error classes in backend/classes/ (like NotFoundError, Un
 
 # Section 3: Database
 
-{overview}
+A database is just where we save data so it doesn't disappear when the server restarts. Beekeepr uses MongoDB (the database itself) and Mongoose (a JS library that makes MongoDB easier to work with). In production, the database is hosted on MongoDB Atlas (cloud). In tests, we spin up a fake in-memory database that dies when tests finish.
 
 >> MongoDB (NOT SQL)
 
+Learning Resources:
+
+- MongoDB docs: https://www.mongodb.com/docs/manual/
+- MongoDB University (free courses, genuinely good): https://learn.mongodb.com
+- Built In "SQL vs. NoSQL: What's the Difference?" (beginner-friendly comparison): https://builtin.com/data-science/sql-vs-nosql
+
 >> Mongoose
+
+Learning Resources:
+
+- Mongoose docs: https://mongoosejs.com/docs/guide.html
+- Mongoose validation: https://mongoosejs.com/docs/validation.html
+- Mongoose middleware: https://mongoosejs.com/docs/middleware.html
 
 >> MongoDB (Atlas)
 
+Learning Resources:
+
+- Atlas quickstart: https://www.mongodb.com/docs/atlas/getting-started/
+- Twelve-Factor App (config): https://12factor.net/config
+
 >> MondgoDB (Memory Server/Testing)
+
+Learning Resources:
+
+- mongodb-memory-server: https://github.com/nodkz/mongodb-memory-server
+- Kent C. Dodds on why not to mock: https://kentcdodds.com/blog/testing-implementation-details
 
 # Section 4: MISC STUFF IDK
 
 {overview?}
+
+>> Jest (Testing Framework)
+
+Learning Resources:
+
+- Jest docs: https://jestjs.io/docs/getting-started
+- Jest matchers: https://jestjs.io/docs/expect
+- freeCodeCamp "How to Test Your Express.js and Mongoose Apps with Jest and SuperTest" (literally our exact stack): https://www.freecodecamp.org/news/how-to-test-in-express-and-mongoose-apps/
+
+>> Supertest (HTTP Testing)
+
+Learning Resources:
+
+- Supertest repo: https://github.com/ladjs/supertest
+
+>> ESLint (Code Quality)
+
+Learning Resources:
+
+- ESLint docs: https://eslint.org/docs/latest/
+- TypeScript ESLint: https://typescript-eslint.io/getting-started
+
+>> GitHub Actions (CI/CD)
+
+Learning Resources:
+
+- GitHub Actions quickstart: https://docs.github.com/en/actions/quickstart
+- Secrets in Actions: https://docs.github.com/en/actions/security-guides/using-secrets-in-github-actions
+- dev.to "CI/CD Tutorial For Developers" (clean beginner walkthrough): https://dev.to/pavanbelagatti/cicd-tutorial-for-developers-3l0
+
+>> Docker & Docker Compose
+
+Learning Resources:
+
+- Docker intro: https://docs.docker.com/get-started/
+- Docker Compose: https://docs.docker.com/compose/
+- Fireship "Docker in 100 Seconds" (exactly what it sounds like, and exactly enough to start): https://www.youtube.com/watch?v=Gjnup-PuquQ
+
+>> Environment Variables & .env
+
+Learning Resources:
+
+- Twelve-Factor App (config): https://12factor.net/config
+- dotenv package: https://github.com/motdotla/dotenv
+
+>> Figma (Design)
+
+Learning Resources:
+
+- Figma for devs: https://help.figma.com/hc/en-us/articles/360040028114-Getting-started-for-developers
+
+>> npm Scripts Reference
+
+NMP SCRIPTS CHEAT SHEET
+
+npm start --> Start Expo dev server (mobile + web)
+
+npm run web --> Start Expo web only
+
+npm run android --> Build + run on Android
+npm run ios --> Build + run on iOS simulator
+npm test --> Run Jest
+npm run test:coverageRun --> Jest + coverage report
+npm run test:ci --> Jest in CI mode (sequential, leak detection)
+npm run lint --> Run ESLint (zero warnings)
+npm run lint:fixAuto-fix --> lint errors
