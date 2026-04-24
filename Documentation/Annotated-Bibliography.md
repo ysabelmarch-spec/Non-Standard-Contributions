@@ -46,3 +46,31 @@ Learning Resources:
 >> STATE MANAGEMENT
 
 >> THEMEING/STYLEEESSS
+
+# Section 2: Back End
+
+{Overview}
+
+>> Node.js
+
+>> Express
+
+>> 6-Layer Architecture
+
+>> Authentication 
+
+>> JOI (Validation)
+
+>> Error Handling
+
+# Section 3: Database
+
+>> MongoDB (NOT SQL)
+
+>> Mongoose
+
+>> MongoDB (Atlas)
+
+>> MondgoDB (Memory Server/Testing)
+
+# Section 4: MISC STUFF IDK
