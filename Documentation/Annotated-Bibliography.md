@@ -177,7 +177,7 @@ Learning Resources:
 >> JOI (Validation)
 
 Joi is a library that checks if incoming data is the right shape before it hits the controller. Every endpoint has a Joi schema in backend/validators/. If someone sends a request with a missing field or a malformed email, Joi rejects it at the door and the database never even gets pinged.
-This "fail early" pattern means less junk in the database and way fewer mystery bugs.
+The "fail early" pattern means less junk in the database and way fewer mystery bugs.
 
 Learning Resources:
 
@@ -194,6 +194,17 @@ A database is just where we save data so it doesn't disappear when the server re
 
 >> MongoDB (NOT SQL)
 
+MongoDB is a NoSQL database. Instead of tables with rows and columns (like SQL / PostgreSQL / MySQL), it stores data as JSON-ish documents in "collections." So instead of:
+| id | email          | password |
+| 1  | me@example.com | hash...  |
+
+...you get:
+json{ "_id": "...", "email": "me@example.com", "password": "hash..." }
+
+The main collection right now is accounts (users).
+
+The DB connection is handled in backend/utils/connectDb.js. It reads the connection URI from environment variables: MONGO_TEST for dev, MONGO_PROD for production.
+
 Learning Resources:
 
 - MongoDB docs: https://www.mongodb.com/docs/manual/
@@ -201,6 +212,22 @@ Learning Resources:
 - Built In "SQL vs. NoSQL: What's the Difference?" (beginner-friendly comparison): https://builtin.com/data-science/sql-vs-nosql
 
 >> Mongoose
+
+Mongoose is the layer between our Node code and MongoDB. It gives us:
+
+Schemas —-> you define the shape of a document (required fields, types, unique constraints) and Mongoose enforces it
+Models —-> basically a class wrapping a collection, with methods like .findOne() and .save()
+Hooks —-> functions that run before/after certain operations. The Account model has a pre('save') hook that auto-hashes passwords before saving —-> so we can never accidentally save a plaintext password
+Instance methods —-> like validatePassword() on an Account document
+Virtuals —-> the id virtual exposes MongoDB's _id as a clean string
+
+The Account schema:
+Field      Type          Notes
+ email      String        Required, unique, lowercase
+ phone      String        Optional, sparse unique index
+ password   String        Argon2 hash, excluded from queries by default
+ refreshId  Number        Token version for revocation
+ accessId   Number        Token version for revocation
 
 Learning Resources:
 
@@ -210,12 +237,22 @@ Learning Resources:
 
 >> MongoDB (Atlas)
 
+Atlas is MongoDB's cloud hosting service. It does replication, backups, scaling, and security so we don't have to run our own MongoDB server somewhere. The connection string is a secret. It lives in the MONGO_PROD environment variable and is never committed to the repo.
+
 Learning Resources:
 
 - Atlas quickstart: https://www.mongodb.com/docs/atlas/getting-started/
 - Twelve-Factor App (config): https://12factor.net/config
 
 >> MondgoDB (Memory Server/Testing)
+
+This library spins up a real MongoDB instance in memory for tests w/ no external dependencies, no leftover test data. The lifecycle is in backend/__tests__/setupTests.js:
+
+Starts before any tests run
+Clears all collections between tests (so tests don't interfere)
+Shuts down after all tests finish
+
+The team specifically chose this over mocking the database. Mocks can drift from real MongoDB behavior and let real bugs slip through. Testing against a real (but in-memory) DB catches more.
 
 Learning Resources:
 
@@ -224,9 +261,21 @@ Learning Resources:
 
 # Section 4: MISC STUFF IDK
 
-{overview?}
+This section = testing, CI/CD, Docker, linting, and all the other infrastructure that isn't specifically front-end or back-end.
 
 >> Jest (Testing Framework)
+
+Jest is the test runner. Tests live in __tests__/ folders next to the code they test. Config is in jest.config.js.
+Key config:
+
+20-second test timeout (because in-memory MongoDB takes a sec to spin up)
+40% coverage threshold — if coverage drops below 40%, CI fails
+Runs setupEnv.js (loads .env) and setupTests.js (DB lifecycle) before tests
+
+Helpers in backend/__tests__/helpers.js:
+
+registerUser() — creates a test user + returns auth tokens
+withAuth(request, tokens) — attaches auth cookies to a Supertest request
 
 Learning Resources:
 
@@ -236,11 +285,27 @@ Learning Resources:
 
 >> Supertest (HTTP Testing)
 
+Supertest tests Express routes without actually starting the server. You pass your Express app directly to it and it fakes the HTTP layer internally. Fast, self-contained.
+Example pattern we use everywhere:
+javascriptconst response = await request(app)
+  .post('/api/auth/login')
+  .send({ email: 'test@example.com', password: 'secret' });
+
+expect(response.status).toBe(200);
+
 Learning Resources:
 
 - Supertest repo: https://github.com/ladjs/supertest
 
 >> ESLint (Code Quality)
+
+ESLint yells at you when your code is ugly or suspicious. Config is in eslint.config.js (flat config format — newer style). Different rules for different file types:
+
+TypeScript files — TS-specific rules
+Backend JS — standard JS rules
+Tests — relaxed rules (e.g., jest/no-disabled-tests is allowed in tests so you can skip a broken test temporarily)
+
+CI runs in zero-warnings mode, so any lint warning blocks a merge to main.
 
 Learning Resources:
 
@@ -248,6 +313,15 @@ Learning Resources:
 - TypeScript ESLint: https://typescript-eslint.io/getting-started
 
 >> GitHub Actions (CI/CD)
+
+CI = "continuous integration" = automatically running tests/lint/build every time someone pushes code. CD = "continuous deployment" = automatically deploying when stuff passes. Our pipeline is in .github/workflows/ci-cd.yml and runs on every push to main + every PR.
+Three jobs in parallel:
+
+Lint — npm run lint (zero warnings)
+TypeCheck — npm run typecheck (tsc --noEmit)
+Build & Test Coverage — installs Node 20, starts a MongoDB 6 container, runs tests with coverage, enforces the 40% threshold, uploads report as artifact
+
+Secrets (JWT keys, DB URIs) live in GitHub repo secrets and get injected as env vars at runtime. Never committed. Ever.
 
 Learning Resources:
 
@@ -257,6 +331,16 @@ Learning Resources:
 
 >> Docker & Docker Compose
 
+Docker lets you run your app in a container — a lightweight, isolated environment that behaves the same on every machine. No more "works on my laptop." We have:
+
+Dockerfile.backend — Node 20 Alpine, serves backend on port 3000
+Dockerfile.frontend — Node 20 Alpine, runs Expo web on port 8081
+docker-compose.yml — brings up both together with env vars from .env
+
+Alpine is a tiny Linux distro (~5MB) — keeps images small and fast.
+
+In class lab also a solid reference for this. 
+
 Learning Resources:
 
 - Docker intro: https://docs.docker.com/get-started/
@@ -265,12 +349,23 @@ Learning Resources:
 
 >> Environment Variables & .env
 
+Secrets don't go in the code. They go in a .env file that's .gitignored (so git ignores it and it never hits the repo). The app reads them via process.env.VARIABLE_NAME. In CI, GitHub Secrets do the same job.
+Required env vars:
+
+MONGO_TEST — dev DB connection
+MONGO_PROD — production DB connection
+ACCESS_SECRET — access JWT signing key
+REFRESH_SECRET — refresh JWT signing key
+NODE_ENV — development / test / production
+
 Learning Resources:
 
 - Twelve-Factor App (config): https://12factor.net/config
 - dotenv package: https://github.com/motdotla/dotenv
 
 >> Figma (Design)
+
+The .figma/ directory at the project root has design assets organized by screen (Home, ApiaryManager, HiveTracker, etc.). These are what the frontend is actually built to match. RPI Students get Figma Premium for free w/ an education plan!
 
 Learning Resources:
 
